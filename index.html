@@ -5,78 +5,92 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>アクスタ特典</title>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
-    
+
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+    <!-- MindAR -->
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
     <style>
         body {
             margin: 0;
-            background: black;
-            color: white;
-            text-align: center;
-        }
-
-        #camera {
-            width: 100%;
-            height: auto;
-        }
-
-        #start {
-            margin: 20px;
-            padding: 15px 30px;
-            font-size: 18px;
+            overflow: hidden;
         }
 
         #danceVideo {
             display: none;
+            position: fixed;
+            z-index: 100;
             width: 80%;
-            position: absolute;
             left: 10%;
-            top: 20%;
+            top: 10%;
         }
     </style>
 </head>
 
 <body>
 
-    <h2>ARアクスタ</h2>
+    <!-- MindAR -->
+    <a-scene
+        mindar-image="imageTargetSrc: ./A画像targets.mind;"
+        color-space="sRGB"
+        renderer="colorManagement: true"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false">
 
-    <video id="camera" autoplay playsinline></video>
+        <!-- カメラ -->
+        <a-camera
+            position="0 0 0"
+            look-controls="enabled: false">
+        </a-camera>
 
-    <br>
+        <!-- A画像を認識 -->
+        <a-entity
+            id="targetA"
+            mindar-image-target="targetIndex: 0">
+        </a-entity>
 
-    <button id="start">カメラを起動</button>
+    </a-scene>
 
-    <video id="danceVideo" autoplay playsinline loop>
-        <source src="Aダンス.mp4" type="video/mp4">
+
+    <!-- Aダンス動画 -->
+    <video
+        id="danceVideo"
+        src="./Aダンス.mp4"
+        playsinline
+        loop>
     </video>
+
 
     <script>
 
-        const camera = document.getElementById("camera");
-        const start = document.getElementById("start");
-        const danceVideo = document.getElementById("danceVideo");
+        const targetA = document.querySelector("#targetA");
+        const danceVideo = document.querySelector("#danceVideo");
 
-        start.addEventListener("click", async () => {
 
-            try {
+        // Aトリガー画像を認識した
+        targetA.addEventListener("targetFound", () => {
 
-                const stream =
-                    await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            facingMode: "environment"
-                        }
-                    });
+            console.log("A画像を認識しました");
 
-                camera.srcObject = stream;
+            danceVideo.style.display = "block";
 
-            } catch (error) {
+            danceVideo.play();
 
-                console.error(error);
+        });
 
-                alert("カメラを起動できませんでした");
 
-            }
+        // Aトリガー画像を見失った
+        targetA.addEventListener("targetLost", () => {
+
+            console.log("A画像を見失いました");
+
+            danceVideo.pause();
+
+            danceVideo.currentTime = 0;
+
+            danceVideo.style.display = "none";
 
         });
 
