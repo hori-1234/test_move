@@ -6,7 +6,7 @@
 
     <title>ARアクスタ</title>
 
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
@@ -30,8 +30,6 @@
 
 <a-scene
     mindar-image="imageTargetSrc: ./Atargets.mind;"
-    color-space="sRGB"
-    renderer="colorManagement: true"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
@@ -55,20 +53,30 @@
 </video>
 
 <script>
-    const targetA = document.querySelector("#targetA");
-    const danceVideo = document.querySelector("#danceVideo");
 
-    targetA.addEventListener("targetFound", () => {
-        console.log("A画像を認識！");
-        danceVideo.style.display = "block";
-        danceVideo.play();
-    });
+const targetA = document.querySelector("#targetA");
+const danceVideo = document.querySelector("#danceVideo");
 
-    targetA.addEventListener("targetLost", () => {
-        console.log("A画像を見失った");
-        danceVideo.pause();
-        danceVideo.style.display = "none";
-    });
+targetA.addEventListener("targetFound", () => {
+
+    console.log("A画像を認識しました");
+
+    danceVideo.style.display = "block";
+
+    danceVideo.play();
+
+});
+
+targetA.addEventListener("targetLost", () => {
+
+    console.log("A画像を見失いました");
+
+    danceVideo.pause();
+
+    danceVideo.style.display = "none";
+
+});
+
 </script>
 
 </body>
