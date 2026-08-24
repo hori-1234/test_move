@@ -1,13 +1,66 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>私のサイト</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>アクスタ特典</title>
+
+    <style>
+        body {
+            margin: 0;
+            background: black;
+            color: white;
+            text-align: center;
+        }
+
+        #camera {
+            width: 100%;
+            height: auto;
+        }
+
+        #start {
+            margin: 20px;
+            padding: 15px 30px;
+            font-size: 18px;
+        }
+    </style>
 </head>
+
 <body>
 
-    <h1>こんにちは！</h1>
-    <p>GitHub Pagesで公開しています。</p>
+    <h2>ARアクスタ</h2>
+
+    <video id="camera" autoplay playsinline></video>
+
+    <button id="start">カメラを起動</button>
+
+    <script>
+
+        const video = document.getElementById("camera");
+        const button = document.getElementById("start");
+
+        button.addEventListener("click", async () => {
+
+            try {
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: "environment"
+                    }
+                });
+
+                video.srcObject = stream;
+
+            } catch (error) {
+
+                console.error(error);
+                alert("カメラを起動できませんでした");
+
+            }
+
+        });
+
+    </script>
 
 </body>
 </html>
