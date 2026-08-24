@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>アクスタ特典</title>
+    <title>ARアクスタ</title>
 
-    <!-- A-Frame -->
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-
-    <!-- MindAR -->
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
@@ -17,84 +15,28 @@
             margin: 0;
             overflow: hidden;
         }
-
-        #danceVideo {
-            display: none;
-            position: fixed;
-            z-index: 100;
-            width: 80%;
-            left: 10%;
-            top: 10%;
-        }
     </style>
 </head>
 
 <body>
 
-    <!-- MindAR -->
-    <a-scene
-        mindar-image="imageTargetSrc: ./A画像targets.mind;"
-        color-space="sRGB"
-        renderer="colorManagement: true"
-        vr-mode-ui="enabled: false"
-        device-orientation-permission-ui="enabled: false">
+<a-scene
+    mindar-image="imageTargetSrc: ./A画像targets.mind;"
+    color-space="sRGB"
+    renderer="colorManagement: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
 
-        <!-- カメラ -->
-        <a-camera
-            position="0 0 0"
-            look-controls="enabled: false">
-        </a-camera>
+    <a-camera
+        position="0 0 0"
+        look-controls="enabled: false">
+    </a-camera>
 
-        <!-- A画像を認識 -->
-        <a-entity
-            id="targetA"
-            mindar-image-target="targetIndex: 0">
-        </a-entity>
+    <a-entity
+        mindar-image-target="targetIndex: 0">
+    </a-entity>
 
-    </a-scene>
-
-
-    <!-- Aダンス動画 -->
-    <video
-        id="danceVideo"
-        src="./Aダンス.mp4"
-        playsinline
-        loop>
-    </video>
-
-
-    <script>
-
-        const targetA = document.querySelector("#targetA");
-        const danceVideo = document.querySelector("#danceVideo");
-
-
-        // Aトリガー画像を認識した
-        targetA.addEventListener("targetFound", () => {
-
-            console.log("A画像を認識しました");
-
-            danceVideo.style.display = "block";
-
-            danceVideo.play();
-
-        });
-
-
-        // Aトリガー画像を見失った
-        targetA.addEventListener("targetLost", () => {
-
-            console.log("A画像を見失いました");
-
-            danceVideo.pause();
-
-            danceVideo.currentTime = 0;
-
-            danceVideo.style.display = "none";
-
-        });
-
-    </script>
+</a-scene>
 
 </body>
 </html>
