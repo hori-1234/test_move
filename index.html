@@ -4,58 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>ARアクスタ</title>
+    <title>画像認識 → 動画</title>
 
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <!-- OpenCV.js -->
+    <script async
+        src="https://docs.opencv.org/4.13.0/opencv.js"
+        onload="onOpenCvReady();">
+    </script>
 
     <style>
         body {
             margin: 0;
+            background: black;
+            color: white;
+            text-align: center;
             overflow: hidden;
+        }
+
+        #camera {
+            width: 100%;
+            max-height: 70vh;
+            object-fit: contain;
+        }
+
+        #status {
+            padding: 15px;
+            font-size: 18px;
         }
 
         #danceVideo {
             display: none;
+            width: 90%;
+            max-height: 80vh;
             position: fixed;
-            z-index: 100;
-            width: 80%;
-            left: 10%;
+            left: 5%;
             top: 10%;
+            z-index: 10;
         }
     </style>
 </head>
 
 <body>
 
-<div id="loading">
-    読み込み中...
+<h2>画像をカメラに映してください</h2>
+
+<div id="status">
+    OpenCVを読み込んでいます...
 </div>
 
-<div id="scanning">
-    Aトリガー画像をカメラに映してください
-</div>
-
-<a-scene
-    mindar-image="
-        imageTargetSrc: ./Atargets.mind;
-        uiLoading: #loading;
-        uiScanning: #scanning;
-    "
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false">
-
-    <a-camera
-        position="0 0 0"
-        look-controls="enabled: false">
-    </a-camera>
-
-    <a-entity
-        id="targetA"
-        mindar-image-target="targetIndex: 0">
-    </a-entity>
-
-</a-scene>
+<video id="camera" autoplay playsinline></video>
 
 <video
     id="danceVideo"
@@ -64,30 +61,340 @@
     loop>
 </video>
 
+<canvas id="canvas" style="display:none;"></canvas>
+
 <script>
 
-const targetA = document.querySelector("#targetA");
-const danceVideo = document.querySelector("#danceVideo");
+let cvReady = false;
+let referenceImage = null;
+let referenceDescriptors = null;
+let orb = null;
+let matcher = null;
 
-targetA.addEventListener("targetFound", () => {
+const camera = document.getElementById("camera");
+const statusText = document.getElementById("status");
+const danceVideo = document.getElementById("danceVideo");
+const canvas = document.getElementById("canvas");
 
-    console.log("A画像を認識しました");
 
-    danceVideo.style.display = "block";
+/*
+ * OpenCV.js 読み込み完了
+ */
+async function onOpenCvReady() {
 
-    danceVideo.play();
+    cv = (cv instanceof Promise) ? await cv : cv;
 
-});
+    cvReady = true;
 
-targetA.addEventListener("targetLost", () => {
+    statusText.textContent =
+        "カメラを起動しています...";
 
-    console.log("A画像を見失いました");
+    await startCamera();
 
-    danceVideo.pause();
+    await loadReferenceImage();
 
-    danceVideo.style.display = "none";
+    statusText.textContent =
+        "Aトリガー画像をカメラに映してください";
 
-});
+    startRecognition();
+}
+
+
+/*
+ * カメラ起動
+ */
+async function startCamera() {
+
+    try {
+
+        const stream =
+            await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: {
+                        ideal: "environment"
+                    }
+                },
+                audio: false
+            });
+
+        camera.srcObject = stream;
+
+        await new Promise(resolve => {
+
+            camera.onloadedmetadata = () => {
+
+                camera.play();
+
+                resolve();
+
+            };
+
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        statusText.textContent =
+            "カメラを起動できませんでした";
+
+    }
+}
+
+
+/*
+ * Aトリガー画像を読み込む
+ */
+async function loadReferenceImage() {
+
+    const image = new Image();
+
+    image.src =
+        "./Aトリガー画像.jpg";
+
+    await new Promise((resolve, reject) => {
+
+        image.onload = resolve;
+
+        image.onerror = reject;
+
+    });
+
+
+    /*
+     * OpenCV用画像
+     */
+    referenceImage = cv.imread(image);
+
+    const gray = new cv.Mat();
+
+    cv.cvtColor(
+        referenceImage,
+        gray,
+        cv.COLOR_RGBA2GRAY
+    );
+
+
+    /*
+     * ORB
+     */
+    orb = new cv.ORB(
+        500
+    );
+
+
+    /*
+     * 基準画像の特徴点
+     */
+    const keypoints =
+        new cv.KeyPointVector();
+
+    referenceDescriptors =
+        new cv.Mat();
+
+    orb.detectAndCompute(
+        gray,
+        new cv.Mat(),
+        keypoints,
+        referenceDescriptors
+    );
+
+
+    /*
+     * BFMatcher
+     */
+    matcher =
+        new cv.BFMatcher(
+            cv.NORM_HAMMING
+        );
+
+
+    gray.delete();
+    keypoints.delete();
+
+}
+
+
+/*
+ * カメラ画像の認識
+ */
+function startRecognition() {
+
+    setInterval(() => {
+
+        if (!cvReady) {
+            return;
+        }
+
+        if (
+            camera.readyState <
+            HTMLMediaElement.HAVE_CURRENT_DATA
+        ) {
+            return;
+        }
+
+        recognize();
+
+    }, 500);
+
+}
+
+
+/*
+ * 画像認識
+ */
+function recognize() {
+
+    canvas.width =
+        camera.videoWidth;
+
+    canvas.height =
+        camera.videoHeight;
+
+    const context =
+        canvas.getContext("2d");
+
+    context.drawImage(
+        camera,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    const frame =
+        cv.imread(canvas);
+
+    const gray =
+        new cv.Mat();
+
+    cv.cvtColor(
+        frame,
+        gray,
+        cv.COLOR_RGBA2GRAY
+    );
+
+
+    /*
+     * カメラ画像の特徴点
+     */
+    const keypoints =
+        new cv.KeyPointVector();
+
+    const descriptors =
+        new cv.Mat();
+
+    orb.detectAndCompute(
+        gray,
+        new cv.Mat(),
+        keypoints,
+        descriptors
+    );
+
+
+    if (
+        descriptors.rows > 0 &&
+        referenceDescriptors.rows > 0
+    ) {
+
+        const matches =
+            new cv.DMatchVectorVector();
+
+        matcher.knnMatch(
+            referenceDescriptors,
+            descriptors,
+            matches,
+            2
+        );
+
+
+        /*
+         * 良い一致だけ残す
+         */
+        let goodMatches = 0;
+
+        for (
+            let i = 0;
+            i < matches.size();
+            i++
+        ) {
+
+            const m =
+                matches.get(i);
+
+            if (m.size() >= 2) {
+
+                const first =
+                    m.get(0);
+
+                const second =
+                    m.get(1);
+
+                if (
+                    first.distance <
+                    0.7 * second.distance
+                ) {
+
+                    goodMatches++;
+
+                }
+
+                first.delete();
+                second.delete();
+            }
+
+            m.delete();
+        }
+
+
+        /*
+         * 10個以上一致したら
+         * A画像と判断
+         */
+        if (goodMatches >= 10) {
+
+            showDance();
+
+        }
+
+        matches.delete();
+    }
+
+
+    frame.delete();
+    gray.delete();
+    keypoints.delete();
+    descriptors.delete();
+
+}
+
+
+/*
+ * 動画再生
+ */
+function showDance() {
+
+    if (
+        danceVideo.style.display !==
+        "block"
+    ) {
+
+        console.log(
+            "Aトリガー画像を認識しました"
+        );
+
+        danceVideo.style.display =
+            "block";
+
+        statusText.textContent =
+            "A画像を認識しました";
+
+        danceVideo.play();
+
+    }
+
+}
 
 </script>
 
