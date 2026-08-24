@@ -3,95 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>アクスタ特典</title>
+
+    <!-- MindAR -->
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
 
     <style>
         body {
             margin: 0;
             background: black;
-            color: white;
-            text-align: center;
+            overflow: hidden;
         }
 
-        #camera {
-            width: 100%;
-            height: auto;
-        }
-
-        #start {
-            margin: 20px;
-            padding: 15px 30px;
-            font-size: 18px;
+        #container {
+            width: 100vw;
+            height: 100vh;
         }
 
         #danceVideo {
             display: none;
-            width: 60%;
-            position: absolute;
-            left: 20%;
-            top: 30%;
+            position: fixed;
+            width: 80%;
+            left: 10%;
+            top: 10%;
+            z-index: 10;
         }
     </style>
 </head>
 
 <body>
 
-    <h2>ARアクスタ</h2>
+<div id="container"></div>
 
-    <!-- カメラ -->
-    <video id="camera" autoplay playsinline></video>
+<video id="danceVideo"
+       autoplay
+       playsinline
+       loop>
+    <source src="Aダンス.mp4" type="video/mp4">
+</video>
 
-    <br>
+<script type="module">
 
-    <button id="start">カメラを起動</button>
+    import * as THREE from
+        "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
-    <button id="showA">Aを表示</button>
-
-    <!-- ダンス動画 -->
-    <video id="danceVideo" autoplay playsinline loop>
-        <source src="Aダンス.mp4" type="video/mp4">
-    </video>
-
-    <script>
-
-        const camera = document.getElementById("camera");
-        const start = document.getElementById("start");
-        const showA = document.getElementById("showA");
-        const danceVideo = document.getElementById("danceVideo");
+    import { MindARThree }
+        from "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js";
 
 
-        // カメラ起動
-        start.addEventListener("click", async () => {
+    const mindarThree = new MindARThree({
+        container: document.querySelector("#container"),
 
-            try {
-
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: "environment"
-                    }
-                });
-
-                camera.srcObject = stream;
-
-            } catch (error) {
-
-                console.error(error);
-                alert("カメラを起動できませんでした");
-
-            }
-
-        });
+        imageTargetSrc: "./targets.mind"
+    });
 
 
-        // Aの動画を表示
-        showA.addEventListener("click", () => {
+    const { renderer, scene, camera } = mindarThree;
 
-            danceVideo.style.display = "block";
-            danceVideo.play();
 
-        });
+    // A画像を認識したとき
+    const anchor = mindarThree.addAnchor(0);
 
-    </script>
+
+    anchor.onTargetFound = () => {
+
+        console.log("A画像を認識しました");
+
+        const video =
+            document.querySelector("#danceVideo");
+
+        video.style.display = "block";
+
+        video.play();
+
+    };
+
+
+    // A画像を見失ったとき
+    anchor.onTargetLost = () => {
+
+        console.log("A画像を見失いました");
+
+        const video =
+            document.querySelector("#danceVideo");
+
+        video.pause();
+
+        video.style.display = "none";
+
+    };
+
+
+    // AR開始
+    mindarThree.start();
+
+
+    renderer.setAnimationLoop(() => {
+
+        renderer.render(scene, camera);
+
+    });
+
+</script>
 
 </body>
 </html>
