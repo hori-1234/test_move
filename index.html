@@ -23,6 +23,14 @@
             padding: 15px 30px;
             font-size: 18px;
         }
+
+        #danceVideo {
+            display: none;
+            width: 60%;
+            position: absolute;
+            left: 20%;
+            top: 30%;
+        }
     </style>
 </head>
 
@@ -30,16 +38,30 @@
 
     <h2>ARアクスタ</h2>
 
+    <!-- カメラ -->
     <video id="camera" autoplay playsinline></video>
+
+    <br>
 
     <button id="start">カメラを起動</button>
 
+    <button id="showA">Aを表示</button>
+
+    <!-- ダンス動画 -->
+    <video id="danceVideo" autoplay playsinline loop>
+        <source src="a_dance.mp4" type="video/mp4">
+    </video>
+
     <script>
 
-        const video = document.getElementById("camera");
-        const button = document.getElementById("start");
+        const camera = document.getElementById("camera");
+        const start = document.getElementById("start");
+        const showA = document.getElementById("showA");
+        const danceVideo = document.getElementById("danceVideo");
 
-        button.addEventListener("click", async () => {
+
+        // カメラ起動
+        start.addEventListener("click", async () => {
 
             try {
 
@@ -49,7 +71,7 @@
                     }
                 });
 
-                video.srcObject = stream;
+                camera.srcObject = stream;
 
             } catch (error) {
 
@@ -57,6 +79,15 @@
                 alert("カメラを起動できませんでした");
 
             }
+
+        });
+
+
+        // Aの動画を表示
+        showA.addEventListener("click", () => {
+
+            danceVideo.style.display = "block";
+            danceVideo.play();
 
         });
 
